@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌟 存钱罐 🌟</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">正在加载数据...</p>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <h1 class="title">🌟 存钱罐 🌟</h1>
+            <p class="subtitle">积少成多，从今天开始</p>
+        </header>
+
+        <main class="main-content">
+            <section class="balance-section">
+                <div class="balance-card">
+                    <div class="balance-icon">💰</div>
+                    <h2 class="balance-label">我的金豆豆</h2>
+                    <div class="balance-amount">
+                        <span id="balance">0.00</span>
+                        <span class="currency">元</span>
+                    </div>
+                    <div class="interest-info">
+                        <span class="interest-icon">📈</span>
+                        <span class="interest-text">利息：年利率 6%（按月复利）</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="actions-section">
+                <div class="action-buttons">
+                    <button class="action-btn deposit-btn" onclick="openDepositModal()">
+                        <span class="btn-icon">🪙</span>
+                        <span class="btn-text">存入</span>
+                    </button>
+                    <button class="action-btn withdraw-btn" onclick="openWithdrawModal()">
+                        <span class="btn-icon">💸</span>
+                        <span class="btn-text">支出</span>
+                    </button>
+                </div>
+                <div class="calculator-btn-container">
+                    <button class="calculator-btn" onclick="openCalculatorModal()">
+                        <span class="calculator-icon">🧮</span>
+                        <span class="calculator-text">利息计算器</span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="history-section">
+                <h3 class="section-title">📋 存取记录</h3>
+                <div class="history-list" id="historyList">
+                    <p class="empty-message">还没有记录哦，快去存钱吧！</p>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p class="footer-text">💡 小贴士：坚持存钱，金豆豆会越来越多哦！</p>
+        </footer>
+    </div>
+
+    <div class="modal" id="depositModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">🪙 存入金豆豆</h2>
+                <button class="close-btn" onclick="closeDepositModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label class="input-label">存入金额</label>
+                    <input type="number" class="amount-input" id="depositAmount" placeholder="请输入金额" min="0.01" step="0.01">
+                </div>
+                <div class="quick-amounts">
+                    <button class="quick-amount-btn" onclick="setDepositAmount(10)">10元</button>
+                    <button class="quick-amount-btn" onclick="setDepositAmount(50)">50元</button>
+                    <button class="quick-amount-btn" onclick="setDepositAmount(100)">100元</button>
+                    <button class="quick-amount-btn" onclick="setDepositAmount(200)">200元</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel-btn" onclick="closeDepositModal()">取消</button>
+                <button class="modal-btn confirm-btn" id="depositConfirmBtn" onclick="confirmDeposit()">
+                    <span class="btn-text">确认存入</span>
+                    <span class="btn-loading" id="depositBtnLoading" style="display: none;">处理中...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="withdrawModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">💸 支出金豆豆</h2>
+                <button class="close-btn" onclick="closeWithdrawModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label class="input-label">支出金额</label>
+                    <input type="number" class="amount-input" id="withdrawAmount" placeholder="请输入金额" min="0.01" step="0.01">
+                </div>
+                <div class="quick-amounts">
+                    <button class="quick-amount-btn" onclick="setWithdrawAmount(10)">10元</button>
+                    <button class="quick-amount-btn" onclick="setWithdrawAmount(50)">50元</button>
+                    <button class="quick-amount-btn" onclick="setWithdrawAmount(100)">100元</button>
+                    <button class="quick-amount-btn" onclick="setWithdrawAmount(200)">200元</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel-btn" onclick="closeWithdrawModal()">取消</button>
+                <button class="modal-btn confirm-btn" id="withdrawConfirmBtn" onclick="confirmWithdraw()">
+                    <span class="btn-text">确认支出</span>
+                    <span class="btn-loading" id="withdrawBtnLoading" style="display: none;">处理中...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="calculatorModal">
+        <div class="modal-content calculator-modal">
+            <div class="modal-header">
+                <h2 class="modal-title">🧮 利息计算器</h2>
+                <button class="close-btn" onclick="closeCalculatorModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label class="input-label">存入金额（元）</label>
+                    <input type="number" class="amount-input" id="calculatorPrincipal" placeholder="请输入存入金额" min="0.01" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">存入时间（月）</label>
+                    <input type="number" class="amount-input" id="calculatorMonths" placeholder="请输入月数" min="1" step="1">
+                </div>
+                <div class="calculator-info">
+                    <p class="info-text">年利率：6%（按月复利）</p>
+                    <p class="info-text">月利率：0.5%</p>
+                </div>
+                <div class="calculator-result" id="calculatorResult" style="display: none;">
+                    <div class="result-item">
+                        <span class="result-label">本金：</span>
+                        <span class="result-value" id="resultPrincipal">0.00</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">利息：</span>
+                        <span class="result-value interest-value" id="resultInterest">0.00</span>
+                    </div>
+                    <div class="result-item total">
+                        <span class="result-label">本息合计：</span>
+                        <span class="result-value total-value" id="resultTotal">0.00</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel-btn" onclick="closeCalculatorModal()">关闭</button>
+                <button class="modal-btn confirm-btn" onclick="calculateInterest()">计算</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="passwordModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="passwordModalTitle">🔐 密码验证</h2>
+                <button class="close-btn" onclick="closePasswordModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label class="input-label">请输入密码</label>
+                    <input type="password" class="amount-input" id="passwordInput" placeholder="请输入密码" maxlength="4">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel-btn" onclick="closePasswordModal()">取消</button>
+                <button class="modal-btn confirm-btn" id="passwordConfirmBtn" onclick="confirmPassword()">
+                    <span class="btn-text">确认</span>
+                    <span class="btn-loading" id="passwordBtnLoading" style="display: none;">验证中...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+    <script src="calculator.js"></script>
+</body>
+</html>
