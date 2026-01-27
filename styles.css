@@ -30,7 +30,6 @@ body {
     color: #fff;
     text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
     margin-bottom: 10px;
-    animation: bounce 2s infinite;
 }
 
 .subtitle {
@@ -104,6 +103,43 @@ body {
     font-size: 1rem;
     color: #27ae60;
     font-weight: bold;
+}
+
+.next-interest-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.6);
+    padding: 10px 20px;
+    border-radius: 15px;
+    margin-top: 10px;
+}
+
+.next-interest-icon {
+    font-size: 1.5rem;
+}
+
+.next-interest-details {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.next-interest-label {
+    font-size: 1rem;
+    color: #666;
+}
+
+.next-interest-value {
+    font-size: 1.2rem;
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.next-interest-details .currency {
+    font-size: 1rem;
+    color: #e74c3c;
 }
 
 .actions-section {
@@ -231,6 +267,7 @@ body {
     border-left: 5px solid #667eea;
     transition: all 0.3s ease;
     min-width: 0;
+    gap: 10px;
 }
 
 .history-item:hover {
@@ -287,6 +324,9 @@ body {
     font-weight: bold;
     flex-shrink: 0;
     margin-left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .history-amount.deposit {
@@ -667,15 +707,6 @@ body {
     }
 }
 
-@keyframes bounce {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-10px);
-    }
-}
-
 @keyframes pulse {
     0%, 100% {
         transform: scale(1);
@@ -745,11 +776,82 @@ body {
         font-size: 2.5rem;
     }
 
+    .interest-info {
+        padding: 8px 15px;
+    }
+
+    .interest-icon {
+        font-size: 1.3rem;
+    }
+
+    .interest-text {
+        font-size: 0.9rem;
+    }
+
+    .next-interest-info {
+        padding: 8px 15px;
+        margin-top: 8px;
+    }
+
+    .next-interest-icon {
+        font-size: 1.3rem;
+    }
+
+    .next-interest-label {
+        font-size: 0.9rem;
+    }
+
+    .next-interest-value {
+        font-size: 1.1rem;
+    }
+
     .action-buttons {
         flex-direction: column;
     }
 
     .quick-amounts {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .history-item {
+        padding: 10px;
+        margin-bottom: 6px;
+        gap: 8px;
+    }
+
+    .history-icon {
+        font-size: 1.4rem;
+        margin-right: 8px;
+        flex-shrink: 0;
+    }
+
+    .history-details {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .history-type {
+        font-size: 0.95rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .history-date {
+        font-size: 0.8rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .history-amount {
+        font-size: 1rem;
+        gap: 5px;
+    }
+
+    .delete-btn {
+        font-size: 1rem;
+        padding: 2px;
+        margin-left: 3px;
     }
 }

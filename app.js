@@ -148,6 +148,8 @@ class GoldenBeans {
 
     updateDisplay() {
         document.getElementById('balance').textContent = this.balance.toFixed(2);
+        const nextInterest = this.balance * this.monthlyInterestRate;
+        document.getElementById('nextInterest').textContent = nextInterest.toFixed(2);
         this.updateHistory();
     }
 
@@ -161,13 +163,10 @@ class GoldenBeans {
 
         historyList.innerHTML = this.history.map((record, index) => {
             const date = new Date(record.date);
-            const formattedDate = date.toLocaleDateString('zh-CN', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const formattedDate = `${year}/${month}/${day}`;
 
             const amountClass = record.type;
             const amountPrefix = record.type === 'withdraw' ? '-' : '+';
