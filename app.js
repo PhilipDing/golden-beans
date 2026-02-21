@@ -14,16 +14,27 @@ class GoldenBeans {
     }
 
     async loadFromStorage() {
-        const data = await jsonBinAPI.getAllData();
+        const data = await giteeAPI.getAllData();
         if (data && data.records && data.records.length > 0) {
-            this.balance = data.balance;
             this.history = data.records;
+            this.balance = this.calculateBalance(data.records);
             this.lastInterestDate = data.lastInterestDate ? new Date(data.lastInterestDate) : new Date();
         }
     }
 
+    calculateBalance(records) {
+        return records.reduce((total, record) => {
+            if (record.type === 'deposit' || record.type === 'interest') {
+                return total + record.amount;
+            } else if (record.type === 'withdraw') {
+                return total - record.amount;
+            }
+            return total;
+        }, 0);
+    }
+
     async saveToStorage() {
-        await jsonBinAPI.saveData(this.balance, this.history, this.lastInterestDate);
+        await giteeAPI.saveData(this.history, this.lastInterestDate);
     }
 
     async checkAndApplyInterest() {
