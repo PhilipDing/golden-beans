@@ -37,6 +37,7 @@
                             <span class="next-interest-label">下月预计利息</span>
                             <span class="next-interest-value" id="nextInterest">0.00</span>
                             <span class="currency">元</span>
+                            <span class="info-icon" onclick="openInterestInfoModal()">❓</span>
                         </div>
                     </div>
                 </div>
@@ -193,10 +194,44 @@
         </div>
     </div>
 
+    <div class="modal" id="interestInfoModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">💡 利息计算说明</h2>
+                <button class="close-btn" onclick="closeInterestInfoModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="interest-explanation">
+                    <p class="explanation-title">📊 计算方式</p>
+                    <p class="explanation-text">每月1日计算一次利息，计算公式如下：</p>
+                    <div class="formula-box">
+                        <p class="formula">利息 = 月初余额和月末余额的最小值 × 月利率</p>
+                    </div>
+                    <p class="explanation-text">月利率 = 6% ÷ 12 = 0.5%</p>
+
+                    <p class="explanation-title">📝 举个例子</p>
+                    <p class="explanation-text">假设这个月：</p>
+                    <ul class="example-list">
+                        <li>月初有 <strong>1000</strong> 元</li>
+                        <li>月末有 <strong>800</strong> 元</li>
+                    </ul>
+                    <p class="explanation-text">那么下月利息 = 800 × 0.5% = <strong>4.00</strong> 元</p>
+
+                    <p class="explanation-title">💡 小贴士</p>
+                    <p class="explanation-text">保持余额稳定，就能获得更多利息哦！</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn confirm-btn" onclick="closeInterestInfoModal()">知道了</button>
+            </div>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script src="api.js"></script>
     <script src="app.js"></script>
+    <script src="ui.js"></script>
     <script src="calculator.js"></script>
 </body>
 </html>

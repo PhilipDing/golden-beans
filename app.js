@@ -2,9 +2,11 @@ class GoldenBeans {
     constructor() {
         this.balance = 0;
         this.history = [];
-        this.annualInterestRate = 0.06;
-        this.monthlyInterestRate = this.annualInterestRate / 12;
         this.init();
+    }
+
+    roundToTwoDecimals(value) {
+        return Math.round(value * 100) / 100;
     }
 
     async init() {
@@ -14,61 +16,139 @@ class GoldenBeans {
     }
 
     async loadFromStorage() {
-        const data = await jsonBinAPI.getAllData();
+        const data = await giteeAPI.getAllData();
         if (data && data.records && data.records.length > 0) {
-            this.balance = data.balance;
             this.history = data.records;
             this.lastInterestDate = data.lastInterestDate ? new Date(data.lastInterestDate) : new Date();
+            this.calculateBalance();
+        } else {
+            this.balance = 0;
+            this.history = [];
+            this.lastInterestDate = new Date();
         }
     }
 
     async saveToStorage() {
-        await jsonBinAPI.saveData(this.balance, this.history, this.lastInterestDate);
+        await giteeAPI.saveData(this.history, this.lastInterestDate.toISOString());
+    }
+
+    calculateBalance() {
+        this.balance = this.roundToTwoDecimals(this.history.reduce((total, record) => {
+            if (record.type === 'deposit' || record.type === 'interest') {
+                return total + record.amount;
+            } else if (record.type === 'withdraw') {
+                return total - record.amount;
+            }
+            return total;
+        }, 0));
     }
 
     async checkAndApplyInterest() {
+        this.calculateBalance();
         const now = new Date();
         const lastDate = new Date(this.lastInterestDate);
 
-        const daysPassed = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
-        const fullMonthsPassed = Math.floor(daysPassed / 30);
+        const monthsPassed = this.calculateMonthsPassed(lastDate, now);
 
-        if (fullMonthsPassed > 0 && this.balance > 0) {
-            await this.applyMultiMonthInterest(fullMonthsPassed);
+        if (monthsPassed > 0) {
+            await this.applyInterestByMonths(lastDate, monthsPassed);
         }
     }
 
-    async applyMultiMonthInterest(months) {
-        const monthlyRate = 0.005;
-        const originalBalance = this.balance;
-        const newBalance = originalBalance * Math.pow(1 + monthlyRate, months);
-        const totalInterest = newBalance - originalBalance;
+    calculateMonthsPassed(startDate, endDate) {
+        let months = 0;
+        let currentDate = new Date(startDate);
+        currentDate.setDate(1);
+        currentDate.setHours(0, 0, 0, 0);
 
-        if (totalInterest > 0) {
-            this.balance = newBalance;
+        const endMonth = new Date(endDate);
+        endMonth.setDate(1);
+        endMonth.setHours(0, 0, 0, 0);
 
-            const lastDate = new Date(this.lastInterestDate);
-            lastDate.setMonth(lastDate.getMonth() + months);
-            this.lastInterestDate = lastDate;
+        while (currentDate < endMonth) {
+            months++;
+            currentDate.setMonth(currentDate.getMonth() + 1);
+        }
 
-            const record = {
-                type: 'interest',
-                amount: totalInterest,
-                date: new Date().toISOString(),
-                icon: '📈',
-                label: months === 1 ? '利息收入' : `利息收入（${months}个月）`
-            };
+        return months;
+    }
 
-            this.history.unshift(record);
-            await this.saveToStorage();
-            this.updateDisplay();
+    getBalanceAtDate(targetDate) {
+        const targetTime = targetDate.getTime();
+        let balance = 0;
 
-            if (months === 1) {
-                showToast(`🎉 太棒了！你获得了 ${totalInterest.toFixed(2)} 元利息！`);
-            } else {
-                showToast(`🎉 太棒了！你获得了 ${months} 个月的利息，共 ${totalInterest.toFixed(2)} 元！`);
+        for (const record of this.history) {
+            const recordTime = new Date(record.date).getTime();
+            if (recordTime <= targetTime) {
+                if (record.type === 'deposit' || record.type === 'interest') {
+                    balance += record.amount;
+                } else if (record.type === 'withdraw') {
+                    balance -= record.amount;
+                }
             }
         }
+
+        return this.roundToTwoDecimals(balance);
+    }
+
+    getMinBalanceInCurrentMonth() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+
+        const monthStart = new Date(year, month, 1);
+        const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999);
+
+        const balanceAtStart = this.getBalanceAtDate(monthStart);
+        const balanceAtEnd = this.getBalanceAtDate(monthEnd);
+
+        return Math.min(balanceAtStart, balanceAtEnd);
+    }
+
+    calculateInterest(principal) {
+        const monthlyRate = 0.06 / 12;
+        return this.roundToTwoDecimals(principal * monthlyRate);
+    }
+
+    async applyInterestByMonths(startDate, monthsCount) {
+        let currentDate = new Date(startDate);
+        currentDate.setDate(1);
+        currentDate.setHours(0, 0, 0, 0);
+
+        for (let i = 0; i < monthsCount; i++) {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            const monthStart = new Date(year, month, 1);
+            const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999);
+
+            const balanceAtStart = this.getBalanceAtDate(monthStart);
+            const balanceAtEnd = this.getBalanceAtDate(monthEnd);
+            const principal = Math.min(balanceAtStart, balanceAtEnd);
+
+            if (principal > 0) {
+                const interest = this.calculateInterest(principal);
+
+                const record = {
+                    type: 'interest',
+                    amount: interest,
+                    date: new Date(year, month, 1).toISOString(),
+                    icon: '📈',
+                    label: '利息收入'
+                };
+
+                this.history.push(record);
+            }
+
+            currentDate.setMonth(currentDate.getMonth() + 1);
+        }
+
+        this.history.sort((a, b) => new Date(b.date) - new Date(a.date));
+        this.calculateBalance();
+        this.lastInterestDate = new Date();
+        await this.saveToStorage();
+        this.updateDisplay();
+        showToast(`✅ 已完成 ${monthsCount} 个月的利息结算！`);
     }
 
     async deposit(amount) {
@@ -79,21 +159,22 @@ class GoldenBeans {
 
         await this.checkAndApplyInterest();
 
-        this.balance += amount;
+        const roundedAmount = this.roundToTwoDecimals(amount);
         const now = new Date();
 
         const record = {
             type: 'deposit',
-            amount: amount,
+            amount: roundedAmount,
             date: now.toISOString(),
             icon: '🪙',
             label: '存入'
         };
 
         this.history.unshift(record);
+        this.calculateBalance();
         await this.saveToStorage();
         this.updateDisplay();
-        showToast(`✅ 成功存入 ${amount.toFixed(2)} 元！`);
+        showToast(`✅ 成功存入 ${roundedAmount.toFixed(2)} 元！`);
         return true;
     }
 
@@ -105,41 +186,34 @@ class GoldenBeans {
 
         await this.checkAndApplyInterest();
 
-        if (amount > this.balance) {
+        const roundedAmount = this.roundToTwoDecimals(amount);
+        const currentBalance = this.calculateBalance();
+        if (roundedAmount > currentBalance) {
             showToast('⚠️ 余额不足，无法支出！');
             return false;
         }
 
-        this.balance -= amount;
         const now = new Date();
 
         const record = {
             type: 'withdraw',
-            amount: amount,
+            amount: roundedAmount,
             date: now.toISOString(),
             icon: '💸',
             label: '支出'
         };
 
         this.history.unshift(record);
+        this.calculateBalance();
         await this.saveToStorage();
         this.updateDisplay();
-        showToast(`✅ 成功支出 ${amount.toFixed(2)} 元！`);
+        showToast(`✅ 成功支出 ${roundedAmount.toFixed(2)} 元！`);
         return true;
     }
 
     async deleteRecord(index) {
-        const record = this.history[index];
-
-        if (record.type === 'deposit') {
-            this.balance -= record.amount;
-        } else if (record.type === 'withdraw') {
-            this.balance += record.amount;
-        } else if (record.type === 'interest') {
-            this.balance -= record.amount;
-        }
-
         this.history.splice(index, 1);
+        this.calculateBalance();
         await this.saveToStorage();
         this.updateDisplay();
         showToast(`✅ 已删除该记录！`);
@@ -148,7 +222,8 @@ class GoldenBeans {
 
     updateDisplay() {
         document.getElementById('balance').textContent = this.balance.toFixed(2);
-        const nextInterest = this.balance * this.monthlyInterestRate;
+        const minBalance = this.getMinBalanceInCurrentMonth();
+        const nextInterest = this.calculateInterest(minBalance);
         document.getElementById('nextInterest').textContent = nextInterest.toFixed(2);
         this.updateHistory();
     }
@@ -187,190 +262,3 @@ class GoldenBeans {
         }).join('');
     }
 }
-
-let app;
-let pendingOperation = null;
-let pendingDeleteIndex = null;
-
-async function initApp() {
-    app = new GoldenBeans();
-    await app.init();
-    document.getElementById('loadingOverlay').style.display = 'none';
-}
-
-initApp();
-
-function openDepositModal() {
-    document.getElementById('depositModal').classList.add('active');
-    document.getElementById('depositAmount').value = '';
-    document.getElementById('depositAmount').focus();
-
-    const btn = document.getElementById('depositConfirmBtn');
-    btn.disabled = false;
-    btn.classList.remove('loading');
-}
-
-function closeDepositModal() {
-    document.getElementById('depositModal').classList.remove('active');
-}
-
-function openWithdrawModal() {
-    document.getElementById('withdrawModal').classList.add('active');
-    document.getElementById('withdrawAmount').value = '';
-    document.getElementById('withdrawAmount').focus();
-
-    const btn = document.getElementById('withdrawConfirmBtn');
-    btn.disabled = false;
-    btn.classList.remove('loading');
-}
-
-function closeWithdrawModal() {
-    document.getElementById('withdrawModal').classList.remove('active');
-}
-
-function setDepositAmount(amount) {
-    document.getElementById('depositAmount').value = amount;
-}
-
-function setWithdrawAmount(amount) {
-    document.getElementById('withdrawAmount').value = amount;
-}
-
-async function confirmDeposit() {
-    const amount = parseFloat(document.getElementById('depositAmount').value);
-
-    if (isNaN(amount) || amount <= 0) {
-        showToast('⚠️ 请输入有效的金额！');
-        return;
-    }
-
-    pendingOperation = { type: 'deposit', amount: amount };
-    openPasswordModal();
-}
-
-async function confirmWithdraw() {
-    const amount = parseFloat(document.getElementById('withdrawAmount').value);
-
-    if (isNaN(amount) || amount <= 0) {
-        showToast('⚠️ 请输入有效的金额！');
-        return;
-    }
-
-    pendingOperation = { type: 'withdraw', amount: amount };
-    openPasswordModal();
-}
-
-function openPasswordModal() {
-    const title = document.getElementById('passwordModalTitle');
-    if (pendingDeleteIndex !== null) {
-        title.textContent = '🗑️ 删除记录';
-    } else if (pendingOperation && pendingOperation.type === 'deposit') {
-        title.textContent = '🪙 存入金豆豆';
-    } else if (pendingOperation && pendingOperation.type === 'withdraw') {
-        title.textContent = '💸 支出金豆豆';
-    } else {
-        title.textContent = '🔐 密码验证';
-    }
-
-    document.getElementById('passwordModal').classList.add('active');
-    document.getElementById('passwordInput').value = '';
-    document.getElementById('passwordInput').focus();
-
-    const btn = document.getElementById('passwordConfirmBtn');
-    btn.disabled = false;
-    btn.classList.remove('loading');
-}
-
-function closePasswordModal() {
-    document.getElementById('passwordModal').classList.remove('active');
-    pendingOperation = null;
-    pendingDeleteIndex = null;
-}
-
-async function confirmPassword() {
-    const password = document.getElementById('passwordInput').value;
-
-    const requiredPassword = pendingDeleteIndex !== null ? '0000' : '0816';
-
-    if (password !== requiredPassword) {
-        showToast('⚠️ 密码错误，请重试！');
-        document.getElementById('passwordInput').value = '';
-        document.getElementById('passwordInput').focus();
-        return;
-    }
-
-    const btn = document.getElementById('passwordConfirmBtn');
-    const btnText = btn.querySelector('.btn-text');
-    const btnLoading = document.getElementById('passwordBtnLoading');
-
-    btn.disabled = true;
-    btnText.style.display = 'none';
-    btnLoading.style.display = 'inline';
-
-    let success = false;
-    if (pendingOperation) {
-        if (pendingOperation.type === 'deposit') {
-            success = await app.deposit(pendingOperation.amount);
-        } else if (pendingOperation.type === 'withdraw') {
-            success = await app.withdraw(pendingOperation.amount);
-        }
-    } else if (pendingDeleteIndex !== null) {
-        success = await app.deleteRecord(pendingDeleteIndex);
-    }
-
-    btn.disabled = false;
-    btnText.style.display = 'inline';
-    btnLoading.style.display = 'none';
-
-    if (success) {
-        if (pendingOperation) {
-            if (pendingOperation.type === 'deposit') {
-                closeDepositModal();
-            } else if (pendingOperation.type === 'withdraw') {
-                closeWithdrawModal();
-            }
-        }
-        closePasswordModal();
-    }
-}
-
-function openDeleteModal(index) {
-    pendingDeleteIndex = index;
-    openPasswordModal();
-}
-
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.classList.add('show');
-
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
-}
-
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeDepositModal();
-        closeWithdrawModal();
-        closePasswordModal();
-    }
-});
-
-document.getElementById('depositAmount').addEventListener('keypress', function(event) {
-    if (event.key === 'Enter') {
-        confirmDeposit();
-    }
-});
-
-document.getElementById('withdrawAmount').addEventListener('keypress', function(event) {
-    if (event.key === 'Enter') {
-        confirmWithdraw();
-    }
-});
-
-document.getElementById('passwordInput').addEventListener('keypress', function (event) {
-    if (event.key === 'Enter') {
-        confirmPassword();
-    }
-});
