@@ -132,7 +132,7 @@ class GoldenBeans {
                 const record = {
                     type: 'interest',
                     amount: interest,
-                    date: new Date(year, month, 1).toISOString(),
+                    date: new Date(year, month + 1, 1).toISOString(),
                     icon: '📈',
                     label: '利息收入'
                 };
