@@ -5,10 +5,12 @@
 ## ✨ 功能特性
 
 - 💰 **存入/支出管理** - 轻松记录每一笔存入和支出
-- 📈 **自动计息** - 年利率 6%，按月复利计算利息
-- 📋 **存取记录** - 完整的交易历史记录
-- 🧮 **利息计算器** - 预览不同存入金额和时间的收益
-- ☁️ **云端存储** - 数据存储在 jsonbin.io，多设备同步
+- **密码验证** - 存入/支出需密码确认，删除记录需独立密码，保障资金安全
+- **自动计息** - 年利率 6%，按月计算利息（取月初与月末余额较小值 × 月利率）
+- 📋 **存取记录** - 完整的交易历史记录，支持删除操作
+- 🧮 **利息计算器** - 预览不同存入金额和时间的复利收益
+- 💡 **利息说明** - 内置利息计算方式说明弹窗
+- ☁️ **云端存储** - 数据通过 Gitee API 存储在 Gitee 仓库中，多设备同步
 - 📱 **响应式设计** - 完美适配手机、平板和电脑
 - 🎨 **精美界面** - 现代化 UI 设计，操作流畅
 
@@ -17,7 +19,7 @@
 ### 前置要求
 
 - 现代浏览器（Chrome、Firefox、Safari、Edge 等）
-- jsonbin.io 账号和 API Key
+- Gitee 账号和 Personal Access Token
 
 ### 安装
 
@@ -27,14 +29,16 @@ git clone <repository-url>
 cd golden-beans
 ```
 
-2. 配置 jsonbin.io
+2. 配置 Gitee API
 
-在 [jsonbin.io](https://jsonbin.io/) 注册账号并创建一个新的 bin，然后在 `api.js` 中配置你的 API Key 和 Bin ID：
+在 [Gitee](https://gitee.com/) 注册账号，创建一个用于存储数据的仓库（如 `json-storage`），并在仓库中创建数据文件（如 `golden-beans.json`）。然后生成 Personal Access Token，在 `api.js` 中配置：
 
 ```javascript
-const jsonBinAPI = new JsonBinAPI(
-    'YOUR_API_KEY',
-    'YOUR_BIN_ID'
+const giteeAPI = new GiteeAPI(
+    'YOUR_TOKEN',
+    'YOUR_OWNER',
+    'YOUR_REPO',
+    'YOUR_PATH'
 );
 ```
 
@@ -46,12 +50,13 @@ const jsonBinAPI = new JsonBinAPI(
 
 ```
 golden-beans/
-├── index.html          # 主页面
-├── styles.css          # 样式文件
-├── app.js             # 核心业务逻辑
-├── api.js             # jsonbin.io API 封装
+├── index.html          # 主页面（含所有弹窗结构）
+├── styles.css          # 样式文件（CSS3 + Flexbox + 动画）
+├── app.js              # 核心业务逻辑（GoldenBeans 类）
+├── api.js              # Gitee API 封装（GiteeAPI 类）
+├── ui.js               # UI 交互逻辑（弹窗、密码验证、Toast）
 ├── calculator.js       # 利息计算器功能
-└── README.md          # 项目文档
+└── README.md           # 项目文档
 ```
 
 ## 🎯 使用说明
@@ -61,14 +66,23 @@ golden-beans/
 1. 点击【存入】按钮
 2. 输入存入金额，或选择快捷金额（10元、50元、100元、200元）
 3. 点击【确认存入】
-4. 等待数据保存完成
+4. 输入密码验证
+5. 等待数据保存完成
 
 ### 支出金豆豆
 
 1. 点击【支出】按钮
 2. 输入支出金额，或选择快捷金额
 3. 点击【确认支出】
-4. 等待数据保存完成
+4. 输入密码验证
+5. 等待数据保存完成
+
+### 删除记录
+
+1. 在存取记录列表中，悬停/长按记录显示删除按钮 🗑️
+2. 点击删除按钮
+3. 输入删除密码验证
+4. 记录将被删除并重新计算余额
 
 ### 利息计算器
 
@@ -77,23 +91,40 @@ golden-beans/
 3. 点击【计算】按钮
 4. 查看本金、利息和本息合计
 
+### 利息说明
+
+点击余额卡片中下月预计利息旁的 ❓ 图标，可查看利息计算的详细说明。
+
 ## 💾 数据存储
 
-应用使用 jsonbin.io 进行云端数据存储，数据结构如下：
+应用使用 Gitee API 进行云端数据存储，数据结构如下：
 
 ```json
 {
-  "balance": 700.00,
   "records": [
     {
       "type": "deposit",
-      "amount": 700,
+      "amount": 100,
       "date": "2026-01-01T00:00:00.000Z",
       "icon": "🪙",
       "label": "存入"
+    },
+    {
+      "type": "withdraw",
+      "amount": 50,
+      "date": "2026-01-15T00:00:00.000Z",
+      "icon": "💸",
+      "label": "支出"
+    },
+    {
+      "type": "interest",
+      "amount": 2.50,
+      "date": "2026-02-01T00:00:00.000Z",
+      "icon": "📈",
+      "label": "利息收入"
     }
   ],
-  "lastInterestDate": "2026-01-01T00:00:00.000Z"
+  "lastInterestDate": "2026-02-01T00:00:00.000Z"
 }
 ```
 
@@ -101,15 +132,19 @@ golden-beans/
 
 - **年利率**：6%
 - **月利率**：0.5%
-- **计息方式**：按月复利
-- **计算公式**：`本息合计 = 本金 × (1 + 月利率)^月数`
+- **计息方式**：按月计算，每月1日自动结算
+- **计算公式**：`月利息 = min(月初余额, 月末余额) × 月利率`
+- **下月预计利息**：基于当月月初与当前余额的较小值计算
+- **复利计算器公式**：`本息合计 = 本金 × (1 + 月利率)^月数`
+
+> 💡 取月初与月末余额的较小值作为计息本金，鼓励保持余额稳定。
 
 ## 🎨 技术栈
 
 - **HTML5** - 页面结构
-- **CSS3** - 样式设计，使用 Flexbox 和 CSS 动画
-- **JavaScript (ES6+)** - 核心逻辑
-- **jsonbin.io API** - 云端数据存储
+- **CSS3** - 样式设计，使用 Flexbox、CSS 动画和渐变
+- **JavaScript (ES6+)** - 核心逻辑，面向对象设计
+- **Gitee API** - 云端数据存储（通过仓库文件读写实现）
 
 ## 🔧 开发说明
 
@@ -119,17 +154,24 @@ golden-beans/
 2. 使用浏览器开发者工具调试
 3. 控制台可查看 API 调用日志
 
+### 代码架构
+
+- `GoldenBeans` 类（app.js）：核心业务逻辑，包括余额计算、利息结算、存取操作
+- `GiteeAPI` 类（api.js）：封装 Gitee 仓库文件 API，提供 `getAllData()` 和 `saveData()` 方法
+- UI 层（ui.js）：处理所有用户交互，包括弹窗管理、密码验证、Toast 提示
+- 计算器（calculator.js）：独立的利息计算功能
+
 ### API 调用优化
 
-- 首次加载时只调用一次 API 获取所有数据
-- 使用 localStorage 记录初始化状态，避免不必要的 API 调用
+- 首次加载时调用 API 获取所有数据
 - 存入/支出操作时显示 loading 状态，防止重复提交
+- 利息结算自动在每次操作前检查并补算
 
 ## 📝 注意事项
 
-- 首次使用会自动初始化 700 元初始金额
+- 首次使用余额为 0，需手动存入
 - 利息在每月 1 号自动计算并添加到余额
-- 数据存储在云端，请妥善保管 jsonbin.io API Key
+- 数据存储在 Gitee 仓库中，请妥善保管 Token
 - 建议定期备份数据
 
 ## 🤝 贡献
@@ -142,7 +184,7 @@ MIT License
 
 ## 🌟 致谢
 
-- [jsonbin.io](https://jsonbin.io/) - 提供云端数据存储服务
+- [Gitee](https://gitee.com/) - 提供云端数据存储服务
 - 所有贡献者和使用者
 
 ---
