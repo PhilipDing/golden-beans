@@ -4,10 +4,12 @@ function openCalculatorModal() {
     document.getElementById('calculatorMonths').value = '';
     document.getElementById('calculatorResult').style.display = 'none';
     document.getElementById('calculatorPrincipal').focus();
+    preventBodyScroll(true);
 }
 
 function closeCalculatorModal() {
     document.getElementById('calculatorModal').classList.remove('active');
+    preventBodyScroll(false);
 }
 
 function calculateInterest() {

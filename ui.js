@@ -2,6 +2,10 @@ let app;
 let pendingOperation = null;
 let pendingDeleteIndex = null;
 
+function preventBodyScroll(prevent) {
+    document.body.style.overflow = prevent ? 'hidden' : '';
+}
+
 async function initApp() {
     app = new GoldenBeans();
     await app.init();
@@ -12,6 +16,7 @@ function openDepositModal() {
     document.getElementById('depositModal').classList.add('active');
     document.getElementById('depositAmount').value = '';
     document.getElementById('depositAmount').focus();
+    preventBodyScroll(true);
 
     const btn = document.getElementById('depositConfirmBtn');
     btn.disabled = false;
@@ -20,12 +25,14 @@ function openDepositModal() {
 
 function closeDepositModal() {
     document.getElementById('depositModal').classList.remove('active');
+    preventBodyScroll(false);
 }
 
 function openWithdrawModal() {
     document.getElementById('withdrawModal').classList.add('active');
     document.getElementById('withdrawAmount').value = '';
     document.getElementById('withdrawAmount').focus();
+    preventBodyScroll(true);
 
     const btn = document.getElementById('withdrawConfirmBtn');
     btn.disabled = false;
@@ -34,6 +41,7 @@ function openWithdrawModal() {
 
 function closeWithdrawModal() {
     document.getElementById('withdrawModal').classList.remove('active');
+    preventBodyScroll(false);
 }
 
 function setDepositAmount(amount) {
@@ -83,6 +91,7 @@ function openPasswordModal() {
     document.getElementById('passwordModal').classList.add('active');
     document.getElementById('passwordInput').value = '';
     document.getElementById('passwordInput').focus();
+    preventBodyScroll(true);
 
     const btn = document.getElementById('passwordConfirmBtn');
     btn.disabled = false;
@@ -91,16 +100,19 @@ function openPasswordModal() {
 
 function closePasswordModal() {
     document.getElementById('passwordModal').classList.remove('active');
+    preventBodyScroll(false);
     pendingOperation = null;
     pendingDeleteIndex = null;
 }
 
 function openInterestInfoModal() {
     document.getElementById('interestInfoModal').classList.add('active');
+    preventBodyScroll(true);
 }
 
 function closeInterestInfoModal() {
     document.getElementById('interestInfoModal').classList.remove('active');
+    preventBodyScroll(false);
 }
 
 async function confirmPassword() {
