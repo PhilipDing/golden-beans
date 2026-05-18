@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🌟 金豆豆存钱罐 🌟</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <div id="loadingOverlay" class="loading-overlay">
@@ -132,42 +133,81 @@
     </div>
 
     <div class="modal" id="calculatorModal">
-        <div class="modal-content calculator-modal">
+        <div class="modal-content calculator-modal-enhanced">
             <div class="modal-header">
                 <h2 class="modal-title">🧮 利息计算器</h2>
                 <button class="close-btn" onclick="closeCalculatorModal()">×</button>
             </div>
             <div class="modal-body">
-                <div class="input-group">
-                    <label class="input-label">存入金额（元）</label>
-                    <input type="number" class="amount-input" id="calculatorPrincipal" placeholder="请输入存入金额" min="0.01" step="0.01">
+                <div class="calculator-mode-tabs">
+                    <button class="mode-tab active" onclick="switchCalculatorMode(1)" id="modeTab1">🎯 目标金额</button>
+                    <button class="mode-tab" onclick="switchCalculatorMode(2)" id="modeTab2">💰 定期存款</button>
                 </div>
-                <div class="input-group">
-                    <label class="input-label">存入时间（月）</label>
-                    <input type="number" class="amount-input" id="calculatorMonths" placeholder="请输入月数" min="1" step="1">
-                </div>
-                <div class="calculator-info">
-                    <p class="info-text">年利率：6%（按月复利）</p>
-                    <p class="info-text">月利率：0.5%</p>
-                </div>
-                <div class="calculator-result" id="calculatorResult" style="display: none;">
-                    <div class="result-item">
-                        <span class="result-label">本金：</span>
-                        <span class="result-value" id="resultPrincipal">0.00</span>
+
+                <div id="mode1Inputs" class="calculator-inputs">
+                    <div class="input-group">
+                        <label class="input-label">目标金额（元）</label>
+                        <input type="number" class="amount-input" id="targetAmount" placeholder="请输入目标金额" min="0.01" step="0.01">
                     </div>
-                    <div class="result-item">
-                        <span class="result-label">利息：</span>
-                        <span class="result-value interest-value" id="resultInterest">0.00</span>
+                    <div class="input-group">
+                        <label class="input-label">当前金额（元）</label>
+                        <input type="number" class="amount-input" id="currentAmount" placeholder="请输入当前金额" min="0" step="0.01">
                     </div>
-                    <div class="result-item total">
-                        <span class="result-label">本息合计：</span>
-                        <span class="result-value total-value" id="resultTotal">0.00</span>
+                    <div class="input-group">
+                        <label class="input-label">每月新增金额（元）</label>
+                        <input type="number" class="amount-input" id="monthlyDeposit" placeholder="默认30元" min="0" step="0.01" value="30">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">月利率（%）</label>
+                        <input type="number" class="amount-input" id="monthlyRate1" placeholder="默认0.5%" min="0" step="0.01" value="0.5">
+                    </div>
+                </div>
+
+                <div id="mode2Inputs" class="calculator-inputs" style="display: none;">
+                    <div class="input-group">
+                        <label class="input-label">每月存入金额（元）</label>
+                        <input type="number" class="amount-input" id="monthlyAmount" placeholder="请输入每月存入金额" min="0.01" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">月利率（%）</label>
+                        <input type="number" class="amount-input" id="monthlyRate2" placeholder="默认0.5%" min="0" step="0.01" value="0.5">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">存入时间（月）</label>
+                        <input type="number" class="amount-input" id="depositMonths" placeholder="默认12个月" min="1" step="1" value="12">
+                    </div>
+                </div>
+
+                <div class="calculator-result-container" id="calculatorResultContainer" style="display: none;">
+                    <div class="result-summary" id="resultSummary"></div>
+
+                    <div class="view-toggle">
+                        <button class="view-tab active" onclick="switchView('chart')" id="chartTab">📊 图表</button>
+                        <button class="view-tab" onclick="switchView('table')" id="tableTab">📋 表格</button>
+                    </div>
+
+                    <div class="time-toggle" id="timeToggle">
+                        <button class="time-tab active" onclick="switchTimeUnit('month')" id="monthTab">月度数据</button>
+                        <button class="time-tab" onclick="switchTimeUnit('year')" id="yearTab">年度数据</button>
+                    </div>
+
+                    <div id="chartContainer" class="chart-container">
+                        <canvas id="calculatorChart"></canvas>
+                    </div>
+
+                    <div id="tableContainer" class="table-container" style="display: none;">
+                        <table class="result-table" id="resultTable">
+                            <thead>
+                                <tr id="tableHeader"></tr>
+                            </thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="modal-btn cancel-btn" onclick="closeCalculatorModal()">关闭</button>
-                <button class="modal-btn confirm-btn" onclick="calculateInterest()">计算</button>
+                <button class="modal-btn confirm-btn" onclick="calculate()">计算</button>
             </div>
         </div>
     </div>
